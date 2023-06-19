@@ -1,0 +1,29 @@
+---
+
+z_user: Admin
+z_password: 'examble'
+z_url: 'http://103.160.84.1/api_jsonrpc.php'
+z_host: "monitor_domains"
+z_interval: 30
+z_retries: 3
+z_agent: 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.104 Safari/537.36'
+# z_http_proxy: "http://172.16.0.60:8080"
+z_applicationid: 1457  #don't use, not support on zabbix 5.4
+
+z_websites:
+    ## Creates a webscenario with two steps (one for http and one for https)
+    ## First step checks http://mycompany.com using GET HTTP method, expects 200,301 or 302 as return code, expects string 'Welcome to mycompany website'
+    ## Second step checks https://mycompany.com using GET HTTP method, expects 200,301 or 302 as return code, expects string 'Welcome to mycompany website'
+    ## The associated trigger will have two tags, display and any_other_tag.                     #name of the web scenario
+  - name: 'abc.com check available'
+    url: '103.160.84.1' 
+    domain: 'abc.com' 
+    state: present 
+    http: 'no' 
+    https: 'yes' 
+    method: 'GET' 
+    status_codes: '301, 302, 200' 
+    header_host: 'yes' 
+    ssl_verify_peer: 'no' 
+    ssl_verify_host: 'no' 
+    warn_time_response: 10000 

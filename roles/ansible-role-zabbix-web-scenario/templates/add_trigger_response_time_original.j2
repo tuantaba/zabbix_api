@@ -1,0 +1,26 @@
+{
+   "jsonrpc": "2.0",
+   "method": "trigger.create",
+   "params": {
+      "description": "Web {{item.name}} high response time",
+      "expression": "{% raw %}{% endraw %}last(/{{z_host}}/web.test.fail[{{item.name}}],#3)>=1",
+      "priority": 5,
+      {% if item.https is defined and item.https == 'yes' %}
+      "url": "https://{{item.url}}"
+      {% else %}
+      "url": "http://{{item.url}}"
+      {% endif %}
+      {% if item.trigger_tags is defined %}
+      "tags": [
+      {% for k,v in item.trigger_tags.items() %}
+         {
+            "tag": "{{k}}",
+            "value": "{{v}}"
+         }
+      {% endfor %}
+      ]
+      {% endif %}
+   },
+   "auth": "{{z_authtoken}}",
+   "id": 1
+}

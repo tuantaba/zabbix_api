@@ -1,0 +1,148 @@
+---
+- name: Requesting API authentification token
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    method: POST
+    body: "{{lookup('template','templates/auth.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  register: z_firstquery
+  tags:
+    - auth
+
+- name: print z_firstquery
+  debug:
+    msg: "{{ z_firstquery }}"
+        
+
+- name: Parsing the authentification request to extract the token
+  set_fact: "z_authtoken={{z_firstquery.json.result}}"
+  tags:
+    - auth
+
+# - name: Listing web scenarios flaggued as absent in ansible
+#   set_fact: "absent_scenarios={{z_websites|selectattr('state','equalto','absent')|list}}"
+#   tags:
+#     - delete
+
+# - name: Getting IDs of all web scenarios to delete (via Zabbix API)
+#   uri:
+#     url: "{{z_url}}"
+#     return_content: yes
+#     body: "{{lookup('template','templates/get_site.j2')}}"
+#     body_format: json
+#     headers:
+#       Content-Type: "application/json-rpc"
+#   with_items: "{{absent_scenarios}}"
+#   register: to_delete
+#   tags:
+#     - delete
+
+# - name: print to_delete
+#   debug:
+#     msg: "{{ to_delete }}"
+
+# - name: Deleting the supposed absent web scenarios in Zabbix
+#   uri:
+#     url: "{{z_url}}"
+#     return_content: yes
+#     method: POST
+#     body: "{{lookup('template','templates/del_site.j2')}}"
+#     body_format: json
+#     headers:
+#       Content-Type: "application/json-rpc"
+#   with_items : "{{to_delete.results}}"
+#   tags:
+#     - delete
+
+- name: Getting the hostid of the default http poller (via Zabbix API)
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    body: "{{lookup('template','templates/get_host.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  register: hostidquery
+  tags:
+    - add
+
+- name: print hostidquery
+  debug:
+    msg: "{{ hostidquery }}"
+    
+- name: Parsing the get_site request to extract the hostid
+  set_fact: "z_hostid={{hostidquery.json.result.0.hostid}}"
+  tags:
+    - add
+
+- name: Adding web scenarios (zabbix API handles the indepotency)
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    method: POST
+    body: "{{lookup('template','templates/add_web.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  with_items: "{{z_websites}}"
+  when: "item.state == 'present'"
+  tags:
+    - add
+
+- name: Adding associated triggers (Website down)
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    method: POST
+    body: "{{lookup('template','templates/add_trigger_web_down.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  with_items: "{{z_websites}}"
+  when: "item.state == 'present'"
+  register: trigger
+  tags:
+    - add
+    - trigger
+
+- name: Adding associated triggers (Website response time)
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    method: POST
+    body: "{{lookup('template','templates/add_trigger_response_time.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  with_items: "{{z_websites}}"
+  when: "item.state == 'present'"
+  register: trigger
+  tags:
+    - add
+    - trigger
+
+- name: print trigger
+  debug:
+    msg: "{{ trigger }}"
+
+- name: generate testing
+  template:
+    src: add_trigger_response_time.j2
+    dest: /tmp/add_trigger.json
+  with_items: "{{z_websites}}"
+  when: "item.state == 'present'"
+
+- name: Logging out from Zabbix API
+  uri:
+    url: "{{z_url}}"
+    return_content: yes
+    method: POST
+    body: "{{lookup('template','templates/logout.j2')}}"
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+  tags:
+    - auth

@@ -1,0 +1,34 @@
+---
+- hosts: 127.0.0.1
+  gather_facts: no
+  become: no
+  roles:
+    - role: ansible-role-zabbix-web-scenario
+      z_user: abc
+      z_password: 'abc'
+      z_url: 'https://abc.com/api_jsonrpc.php'
+      z_host: "web check"
+      z_interval: 30
+      z_retries: 3
+      z_agent: 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.104 Safari/537.36'
+      z_http_proxy: "http://172.16.1.61:8080"
+      z_applicationid: 1457  #don't use, not support on zabbix 5.4
+
+      z_websites:
+          ## Creates a webscenario with two steps (one for http and one for https)
+          ## First step checks http://mycompany.com using GET HTTP method, expects 200,301 or 302 as return code, expects string 'Welcome to mycompany website'
+          ## Second step checks https://mycompany.com using GET HTTP method, expects 200,301 or 302 as return code, expects string 'Welcome to mycompany website'
+          ## The associated trigger will have two tags, display and any_other_tag.
+        - name: 'abc.com check available'                         #name of the web scenario
+          url: 'abc.com/dashboard/script/vnware.js'
+          domain: 'abc.com'                      #url of the web scenario (DO NOT PUT http(s)://)
+          state: present                                  #state, present or absent
+          # url_manual:  'yes' #set
+          http: 'no'
+          https: 'yes'                                 #is the website in https ? no by default
+          method: 'GET'                                       #http method used, GET or HEAD, HEAD by default
+          status_codes: '401, 200'                         #expected http code returned, 200 by default
+          header_host: 'yes'
+          ssl_verify_peer: 'no'
+          ssl_verify_host: 'no'
+          warn_time_response: 5000
